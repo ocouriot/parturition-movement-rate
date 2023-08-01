@@ -25,7 +25,7 @@
       "id": "dayloss",
       "name": "Missing data",
       "description": "Individuals with a gap in their data (number of days with missing locations) higher than dayloss are removed",
-      "defaultValue": 2022,
+      "defaultValue": Inf,
       "type": "INTEGER"
     },
     {

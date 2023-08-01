@@ -4,7 +4,6 @@ library('magrittr')
 library('plyr')
 library('dplyr')
 library('ggplot2')
-library('sp')
 library('sf')
 
 
@@ -16,7 +15,6 @@ library('sf')
 
 # Showcase injecting app setting (parameter `year`)
 rFunction = function(data, start, end, nfixes = Inf, dayloss = Inf, restrictive = FALSE,
-                     id.col = "ID", time.col = "Time",
                      int, kcons, models = c("full","calfonly")) {
   
   # Preparation of data: Need to create coordinates in metric system to be able to 

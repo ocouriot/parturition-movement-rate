@@ -1,24 +1,60 @@
 {
   "settings": [
     {
-      "id": "sdk",
-      "name": "The name of the MoveApps SDK",
-      "description": "Showcase requesting a string input from the users of your app.",
-      "defaultValue": "MoveApps SDK",
+      "id": "start",
+      "name": "Start date",
+      "description": "Start date of the period of interest, formatted as character strings in the form 'mm-dd' (e.g. '05-19' for May 19)",
+      "defaultValue": "05-19",
       "type": "STRING"
     },
     {
-      "id": "year",
-      "name": "The year",
-      "description": "Insert description for the year setting setting",
+      "id": "end",
+      "name": "End date",
+      "description": "End date of the period of interest, formatted as character strings in the form 'mm-dd' (e.g. '07-07' for July 07)",
+      "defaultValue": "07-07",
+      "type": "STRING"
+    },
+    {
+      "id": "nfixes",
+      "name": "Fix rate",
+      "description": "Individuals with a fix rate lower than nfixes per day over the period of of interest are removed",
+      "defaultValue": Inf,
+      "type": "INTEGER"
+    },
+    {
+      "id": "dayloss",
+      "name": "Missing data",
+      "description": "Individuals with a gap in their data (number of days with missing locations) higher than dayloss are removed",
       "defaultValue": 2022,
       "type": "INTEGER"
     },
     {
-      "id": "yourLocalFileSettingId",
-      "name": "Personalization",
-      "description": "You can personalize the dashboard by providing a file named 'sample.txt'",
-      "type": "LOCAL_FILE"
+      "id": "restrictive",
+      "name": "Restriction",
+      "description": "If TRUE, only individuals having monitoring for the entire period are considered",
+      "defaultValue": FALSE,
+      "type": "BOLEAN"
+    },
+    {
+      "id": "int",
+      "name": "Number of days in a segment",
+      "description": "Integer value indicating the minimum number of days between the beginning of the time series and the first BP (calf birth), the last BP (calf death) and the end of the time series, and between the two BPs. The main reason for this constraint is that a minimum number of data points are required in each section of the time-series to be able to estimate model parameters. We recommend 9 relocations (e.g. 3 days at 3 locations / day)",
+      "defaultValue": 3,
+      "type": "INTEGER"
+    },
+    {
+      "id": "kcons",
+      "name": "Range of recovery time",
+      "description": "Constraints on the recovery parameter *k*, as a vector of the minimum and maximum time it takes the female to recover normal movement rate (in days)",
+      "defaultValue": c(5,21),
+      "type": "INTEGER"
+    },
+    {
+      "id": "models",
+      "name": "Models",
+      "description": "Models to be used to determine parturition status and timing between 'calfonly' (comparing only the no calf and calf models) and 'full' (comparing the no calf, calf and calf + death models",
+      "defaultValue": "full",
+      "type": "STRING"
     }
   ],
   "dependencies": {
@@ -28,54 +64,65 @@
       },
       {
         "name": "move2"
+      },
+      {
+        "name": "magrittr"
+      },
+      {
+        "name": "plyr"
+      },
+      {
+        "name": "dplyr"
+      },
+      {
+        "name": "sf"
+      },
+      {
+        "name": "ggplot2"
       }
     ]
   },
   "createsArtifacts": true,
-  "providedAppFiles": [
-    {
-      "settingId": "yourLocalFileSettingId",
-      "from": "data/local_app_files/provided-app-files/yourLocalFileSettingId/"
-    }
-  ],
   "license": {
     "key": "MIT"
   },
   "language": "eng",
   "keywords": [
-    "example",
-    "template"
+    "parturition",
+    "movement rate",
+    "mechanistic models",
+	  "animal movement"
   ],
   "people": [
     {
-      "firstName": "Charles",
-      "middleInitials": null,
-      "lastName": "Darwin",
-      "email": "creator@example.com",
+      "firstName": "Ophélie",
+      "middleInitials": "H",
+      "lastName": "Couriot",
+      "email": "o.couriot@gmail.com",
       "roles": [
         "author",
         "creator"
       ],
       "orcid": null,
-      "affiliation": null,
+      "affiliation": "SUNY - ESF",
       "affiliationRor": null
     }
   ],
   "funding": [
     {
-      "name": "funder name",
-      "comment": "grant for App"
+      "name": null,
+      "comment": null
     }
   ],
   "references": [
     {
-      "type": "IsDescribedBy",
-      "note": "Darwin, C. 1900. The creation. Journal XY. 1-2",
-      "url": "https://anylink.xyz"
+      "type": "Scientific paper",
+      "note": "Couriot, O. H., Cameron, M. D., Joly, K., Adamczewski, J., Campbell, M. W., Davison, T., Gunn, A., Kelly, A. P., Leblond, M., Williams, J., Fagan, W. F., Brose, A., & Gurarie, E. (2023). Continental synchrony and local responses: Climatic effects on spatiotemporal patterns of calving in a social ungulate. Ecosphere, 14(1), e4399.",
+      "url": "https://doi.org/10.1002/ecs2.4399"
     }
   ],
   "documentation": {
-    "url": "https://github.com/yourAccount/my-app/README.md"
+    "url": "https://github.com/ocouriot/parturition-movement-rate/README.md"
   }
 }
 

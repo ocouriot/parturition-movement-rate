@@ -14,8 +14,8 @@ library('sf')
 # logger.fatal(), logger.error(), logger.warn(), logger.info(), logger.debug(), logger.trace()
 
 # Showcase injecting app setting (parameter `year`)
-rFunction = function(data, start, end, nfixes = Inf, dayloss = Inf, restrictive = FALSE,
-                     int, kcons, models = c("full","calfonly")) {
+rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss = Inf, restrictive = FALSE,
+                     int = 3, kcons = c(5, 21), models = c("full","calfonly")) {
   
   # Preparation of data: Need to create coordinates in metric system to be able to 
   # do the next steps and rename some columns
@@ -827,7 +827,19 @@ rFunction = function(data, start, end, nfixes = Inf, dayloss = Inf, restrictive 
   prepped_data <- data %>% prepData(start = start, end = end, nfixes = nfixes, 
                                     dayloss = dayloss, restrictive = restrictive) %>% 
     getSpeed(id.col = id.col, x.col = x.col, y.col = y.col, time.col = time.col)
+  
+  pdf(file="Calving_plots.pdf", res = 300)
   calving_results <- estimateCalving(prepped_data, int = int, kcons = kcons, models = models)
+  dev.off()
+  
+  statistics <- calving_results$statistics
+  write.csv(statistics, file = "calving_statistics.csv")
+  
+  parameters <- calving_results$par
+  write.csv(parameters, file = "calving_models_parameters.csv")
+  
+  calving_results <- calving_results$results
+  write.csv(calving_results, file = "calving_results.csv")
   
   return(calving_results)
 }

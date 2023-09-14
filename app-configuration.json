@@ -1,4 +1,5 @@
 {
+    "sdk": "MoveApps R SDK",
     "start": "05-19",
     "end": "07-07",
     "nfixes": Inf,

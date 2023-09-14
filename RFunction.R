@@ -24,16 +24,14 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     as.data.frame %>% rename(Time = timestamp) %>%
     mutate(geometry = NULL, Year = year(Time))
   
-  if (any(names(data)=="local_identifier")) #need to account for the fact that not all data sets have the variable local_identifier or individual_local_identifier
+  if (any(names(data)=="tag.local.identifier"))
   {
-    data$ID <- unique(data$local_identifier)
-  } else if (any(names(data)=="individual_local_identifier"))
-  {
-    data$ID <- unique(data$individual_local_identifier)
-  } else
-  {
+    data$ID <- data$tag.local.identifier
+  } else if (any(names(data)=="tag.id")){
+    data$ID <- data$tag.id
+  } else {
     logger.info("There is no standard variable for animal ID in your data set, therefore trackId is used.")
-    data$ID <- unique(data$trackId)
+    data$ID <- data$track
   }
   
   # First step: preparing data by 
@@ -102,7 +100,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   # in POSIXct format. This will calculate the speed between subsequent 
   # relocations (i.e. of each step), as well as the middle time
   # of the step.
-  getSpeed <- function(x, id.col = "ID", x.col = "x", y.col = "y"){
+  getSpeed <- function(x, id.col = "ID", x.col = "x", y.col = "y", ...){
     
     if(class(x)[1] == "data.frame"){
       df_annotated <- x %>% mutate(X = get(x.col), Y = get(y.col)) %>%
@@ -826,9 +824,9 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   # Run the functions to estimate calving
   prepped_data <- data %>% prepData(start = start, end = end, nfixes = nfixes, 
                                     dayloss = dayloss, restrictive = restrictive) %>% 
-    getSpeed(id.col = id.col, x.col = x.col, y.col = y.col, time.col = time.col)
+    getSpeed(id.col = "ID", x.col = "x", y.col = "y", time.col = "Time")
   
-  pdf(file="Calving_plots.pdf", res = 300)
+  vvpdf(file="Calving_plots.pdf")
   calving_results <- estimateCalving(prepped_data, int = int, kcons = kcons, models = models)
   dev.off()
   

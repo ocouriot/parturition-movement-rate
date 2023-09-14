@@ -17,22 +17,6 @@ library('sf')
 rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss = Inf, restrictive = FALSE,
                      int = 3, kcons = c(5, 21), models = c("full","calfonly")) {
   
-  # Preparation of data: Need to create coordinates in metric system to be able to 
-  # do the next steps and rename some columns
-  data <- data %>% st_as_sf(data, coords=c("location.long", "location.lat"), crs = 4326) %>%
-    st_transform(crs = 3857) %>% mutate(x = st_coordinates(.)[,1], y = st_coordinates(.)[,2]) %>%
-    as.data.frame %>% rename(Time = timestamp) %>%
-    mutate(geometry = NULL, Year = year(Time))
-  
-  if (any(names(data)=="tag.local.identifier"))
-  {
-    data$ID <- data$tag.local.identifier
-  } else if (any(names(data)=="tag.id")){
-    data$ID <- data$tag.id
-  } else {
-    logger.info("There is no standard variable for animal ID in your data set, therefore trackId is used.")
-    data$ID <- data$track
-  }
   
   # First step: preparing data by 
   # (a) trimming to analysis period of interest; for example, in the parturition analysis
@@ -43,6 +27,22 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   # (c) removing individuals with a data gap greater than some minimum threshold 
   # (e.g. 3 days for the parturiton analysis). 
   prepData <- function(df, start, end, nfixes = Inf, dayloss = Inf, restrictive = FALSE){
+    
+    # Preparation of data: Need to create coordinates in metric system to be able to 
+    # do the next steps and rename some columns
+    df <- df %>% st_as_sf(df, coords=c("location.long", "location.lat"), crs = 4326) %>%
+      st_transform(crs = 3857) %>% mutate(x = st_coordinates(.)[,1], y = st_coordinates(.)[,2]) %>%
+      as.data.frame %>% rename(Time = timestamp) %>%
+      mutate(geometry = NULL, Year = year(Time))
+    
+    if (any(names(df)=="tag.local.identifier")){
+      df$ID <- data$tag.local.identifier
+    } else if (any(names(df)=="tag.id")){
+      df$ID <- df$tag.id
+    } else {
+      logger.info("There is no standard variable for animal ID in your data set, therefore track is used.")
+      df$ID <- df$track
+    }
     
     # just keep time series between defined start and end
     tempo <- df %>% as.data.frame %>% 
@@ -755,8 +755,6 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         results.summary=rbind(results.summary,results.summary.temp)
       }
       
-      
-      ####### if PlotAIC = TRUE statement plots
       ####### Making plots of results ##########
       temp <- droplevels(subset(temp, is.na(speed)==FALSE))
       temp <- temp[order(temp$Time),]
@@ -772,6 +770,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
           theme(axis.line.y = element_line(size = .5,colour = "black",linetype = "solid")) + #add axis lines
           theme(plot.title = element_text(size = 12,face = "bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500))
+        print(p1)
       } # END plot of the no calf model
       
       
@@ -791,7 +790,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
           theme(plot.title=element_text(size=12,face="bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500)) +
           geom_line(aes(as.POSIXct(Time), fit.values.calf, colour=1, group=1), show.legend=FALSE, size=1) #plots predicted values
-      } # END plot of the calf model
+        print(p2)
+        } # END plot of the calf model
       
       
       if (coeffs$Best.Model[coeffs$ID_Year == i] == "calfdeath"){  #if the best model is the "calved then calf lost" model, plot 2 breakpoints
@@ -813,7 +813,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
           theme(plot.title=element_text(size=12,face="bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500)) +
           geom_line(aes(as.POSIXct(Time), fit.values.calfdeath, colour=1, group=1), show.legend=FALSE, size=1) #plots predicted values
-      } # End Plot of the calf death model
+       print(p3)
+        } # End Plot of the calf death model
       
     } # END for loop for each individual
     
@@ -826,18 +827,18 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
                                     dayloss = dayloss, restrictive = restrictive) %>% 
     getSpeed(id.col = "ID", x.col = "x", y.col = "y", time.col = "Time")
   
-  vvpdf(file="Calving_plots.pdf")
+  pdf(file="data/output/Calving_plots.pdf")
   calving_results <- estimateCalving(prepped_data, int = int, kcons = kcons, models = models)
   dev.off()
   
   statistics <- calving_results$statistics
-  write.csv(statistics, file = "calving_statistics.csv")
+  write.csv(statistics, file = "data/output/calving_statistics.csv")
   
   parameters <- calving_results$par
-  write.csv(parameters, file = "calving_models_parameters.csv")
+  write.csv(parameters, file = "data/output/calving_models_parameters.csv")
   
   calving_results <- calving_results$results
-  write.csv(calving_results, file = "calving_results.csv")
+  write.csv(calving_results, file = "data/output/calving_results.csv")
   
   return(calving_results)
 }

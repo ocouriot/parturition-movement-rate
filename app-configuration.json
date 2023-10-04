@@ -1,11 +1,4 @@
 {
     "sdk": "MoveApps R SDK",
-    "start": "05-19",
-    "end": "07-07",
-    "nfixes": 1,
-    "dayloss": 10,
-    "restrictive": FALSE,
-    "int": 3,
-    "kcons": c(5,21),
-    "models": "calfonly"
+    "year": 2004
 }

@@ -10,16 +10,7 @@ source("src/common/runtime_configuration.R")
 clearRecentOutput()
 # This will parse a JSON file containing the concrete configuration of
 # the app run. Per default the file `/app-configuration.json` will be parsed.
-args <- list() # if your function has no arguments, this line still needs to be active
-# Add all your arguments of your r-function here
-args[["start"]] = "05-19"
-args[["end"]] = "07-07"
-args[["nfixes"]] = 1
-args[["dayloss"]] = 10
-args[["restrictive"]] = FALSE
-args[["int"]] = 3
-args[["kcons"]] = c(5,21)
-args[["models"]] = "calfonly"
+args <- configuration()
 
 # Lets simulate running your app on MoveApps
 source("src/moveapps.R")

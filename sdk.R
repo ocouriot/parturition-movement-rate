@@ -14,8 +14,8 @@ args <- list() # if your function has no arguments, this line still needs to be 
 # Add all your arguments of your r-function here
 args[["start"]] = "05-19"
 args[["end"]] = "07-07"
-args[["nfixes"]] = Inf
-args[["dayloss"]] = Inf
+args[["nfixes"]] = 1
+args[["dayloss"]] = 10
 args[["restrictive"]] = FALSE
 args[["int"]] = 3
 args[["kcons"]] = c(5,21)

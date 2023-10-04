@@ -18,14 +18,14 @@
       "id": "nfixes",
       "name": "Fix rate",
       "description": "Individuals with a fix rate lower than nfixes per day over the period of of interest are removed",
-      "defaultValue": Inf,
+      "defaultValue": 1,
       "type": "INTEGER"
     },
     {
       "id": "dayloss",
       "name": "Missing data",
       "description": "Individuals with a gap in their data (number of days with missing locations) higher than dayloss are removed",
-      "defaultValue": Inf,
+      "defaultValue": 10,
       "type": "INTEGER"
     },
     {

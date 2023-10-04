@@ -26,7 +26,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   # individuals that have too few; and 
   # (c) removing individuals with a data gap greater than some minimum threshold 
   # (e.g. 3 days for the parturiton analysis). 
-  prepData <- function(df, start, end, nfixes = Inf, dayloss = Inf, restrictive = FALSE){
+  prepData <- function(df, start, end, nfixes = 1, dayloss = 10, restrictive = FALSE){
     
     # Preparation of data: Need to create coordinates in metric system to be able to 
     # do the next steps and rename some columns

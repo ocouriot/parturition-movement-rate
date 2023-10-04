@@ -33,7 +33,7 @@
       "name": "Restriction",
       "description": "If TRUE, only individuals having monitoring for the entire period are considered",
       "defaultValue": FALSE,
-      "type": "BOLEAN"
+      "type": "BOOLEAN"
     },
     {
       "id": "int",

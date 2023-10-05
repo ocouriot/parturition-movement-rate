@@ -27,14 +27,14 @@
       "description": "Individuals with a gap in their data (number of days with missing locations) higher than dayloss are removed",
       "defaultValue": 10,
       "type": "INTEGER"
-    },
-    {
-      "id": "restrictive",
-      "name": "Restriction",
-      "description": "If TRUE, only individuals having monitoring for the entire period are considered",
-      "defaultValue": FALSE,
-      "type": "BOOLEAN"
-    },
+    },  
+ {
+   "id": "restrictive",
+   "name": "Restriction",
+ "description": "If true, only individuals having monitoring for the entire period are considered",
+ "defaultValue": false,  
+ "type": "CHECKBOX"      
+},
     {
       "id": "int",
       "name": "Number of days in a segment",
@@ -43,12 +43,22 @@
       "type": "INTEGER"
     },
     {
-      "id": "kcons",
-      "name": "Range of recovery time",
-      "description": "Constraints on the recovery parameter *k*, as a vector of the minimum and maximum time it takes the female to recover normal movement rate (in days)",
-      "defaultValue": c(5,21),
-      "type": "INTEGER"
+      "id": "kcons_min",
+      "name": "Minimum recovery time",
+      "description": "Lower constraint on the recovery parameter *k*, as the minimum time it takes the female to recover normal movement rate (in days)",
+      "defaultValue": 5,
+      "type": "DOUBLE"
     },
+    {
+      "id": "kcons_max",
+      "name": "Maximum recovery time",
+      "description": "Upper constraint on the recovery parameter *k*, as the maximum time it takes the female to recover normal movement rate (in days)",
+      "defaultValue": 21,
+      "type": "DOUBLE"
+    },
+
+
+
     {
       "id": "models",
       "name": "Models",
@@ -91,7 +101,7 @@
     "parturition",
     "movement rate",
     "mechanistic models",
-	  "animal movement"
+ "animal movement"
   ],
   "people": [
     {
@@ -99,6 +109,7 @@
       "middleInitials": "H",
       "lastName": "Couriot",
       "email": "o.couriot@gmail.com",
+
       "roles": [
         "author",
         "creator"
@@ -108,16 +119,14 @@
       "affiliationRor": null
     }
   ],
-  "funding": [
-    {
-      "name": null,
-      "comment": null
-    }
-  ],
+
   "references": [
     {
-      "type": "Scientific paper",
+      "type": "IsDescribedBy",
+
       "note": "Couriot, O. H., Cameron, M. D., Joly, K., Adamczewski, J., Campbell, M. W., Davison, T., Gunn, A., Kelly, A. P., Leblond, M., Williams, J., Fagan, W. F., Brose, A., & Gurarie, E. (2023). Continental synchrony and local responses: Climatic effects on spatiotemporal patterns of calving in a social ungulate. Ecosphere, 14(1), e4399.",
+
+
       "url": "https://doi.org/10.1002/ecs2.4399"
     }
   ],
@@ -125,4 +134,3 @@
     "url": "https://github.com/ocouriot/parturition-movement-rate/README.md"
   }
 }
-

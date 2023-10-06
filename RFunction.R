@@ -840,5 +840,5 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   calving_results <- calving_results$results
   write.csv(calving_results, file = "data/output/calving_results.csv")
   
-  return(calving_results)
+  return(data)
 }

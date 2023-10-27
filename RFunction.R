@@ -15,7 +15,7 @@ library('sf')
 
 # Showcase injecting app setting (parameter `year`)
 rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss = Inf, restrictive = FALSE,
-                     int = 3, kcons = c(5, 21), models = c("full","calfonly")) {
+                     int = 3, kcons_min = 5, kcons_max = 21, models = c("full","calfonly")) {
   
   
   # First step: preparing data by 
@@ -165,7 +165,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   #
   # Once the mean speed reaches the value from before the birth of the calf,
   # it remains at this value.
-  nllCalf <- function(df, BP1, kcons, PlotMe = FALSE) {
+  nllCalf <- function(df, BP1, kcons_min, kcons_max, PlotMe = FALSE) {
     
     # Divides the time series into two sections:
     # a: before the birth of the calf
@@ -200,11 +200,11 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     
     ### optimize the function nllPost (after parturition)
     par0 <- c(log.beta.calf=0,
-              recovery = mean(kcons)*24)
+              recovery = mean(c(kcons_min, kcons_max))*24)
     alpha.calf <- ifelse(alpha.hat>1, 1, alpha.hat)
     mod <- optim(par0, nllPost, alpha.calf = alpha.calf, alpha.mean = alpha.hat, beta.mean = beta.hat, dhours.b = dhours.b, speed.b = speed.b,
-                 hessian = TRUE, method = "L-BFGS-B",upper=c(log.beta.calf = Inf, recovery=kcons[2]*24),
-                 lower=c(log.beta.calf = log(beta.hat*2), recovery=kcons[1]*24))
+                 hessian = TRUE, method = "L-BFGS-B",upper=c(log.beta.calf = Inf, recovery=kcons_max*24),
+                 lower=c(log.beta.calf = log(beta.hat*2), recovery=kcons_min*24))
     # control=list(trace=3))
     
     # get the negative log-likelihood
@@ -252,7 +252,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   }
   
   #  nllCalfdeath calculates the negative log-likelihood of a female with a calf that died.
-  nllCalfDeath <- function(df, BP1, BP2, kcons, PlotMe = FALSE){
+  nllCalfDeath <- function(df, BP1, BP2, kcons_min, kcons_max, PlotMe = FALSE){
     
     # Divides the time series into three sections:
     # a: before the birth of the calf
@@ -291,11 +291,11 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     
     # optimize the function nllPost (after parturition but before calf death)
     par0 <- c(log.beta.calf=0,
-              recovery = mean(kcons)*24)
+              recovery = mean(c(kcons_min, kcons_max))*24)
     alpha.calf <- ifelse(alpha.hat>1, 1, alpha.hat)
     mod <- optim(par0, nllPost, alpha.calf = alpha.calf, alpha.mean = alpha.hat, beta.mean = beta.hat, dhours.b = dhours.b, speed.b = speed.b,
-                 hessian = TRUE, method = "L-BFGS-B",upper=c(log.beta.calf = Inf, recovery=kcons[2]*24),
-                 lower=c(log.beta.calf = log(beta.hat*2), recovery=kcons[1]*24))
+                 hessian = TRUE, method = "L-BFGS-B",upper=c(log.beta.calf = Inf, recovery=kcons_max*24),
+                 lower=c(log.beta.calf = log(beta.hat*2), recovery=kcons_min*24))
     
     # get the negative log-likelihood
     nllb <- mod$value
@@ -341,7 +341,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   }
   
   # mnll2M minimize the negative log-likelihood of the no calf and calf models only
-  mnll2M <- function(df, int, kcons){
+  mnll2M <- function(df, int, kcons_min, kcons_max){
     
     speed <- na.omit(df$speed)
     speed[speed == 0] <- 1
@@ -391,7 +391,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       BP1s  <- (int:(BPmax-int)) # All possible BP
       ll1s <- rep(NA,length(BP1s))
       trytogetbp <- function (bp) {
-        fit <- try(nllCalf(df = df, BP = bp, kcons = kcons),silent=TRUE)
+        fit <- try(nllCalf(df = df, BP = bp, kcons_min = kcons_min, kcons_max = kcons_max),silent=TRUE)
         if (!inherits(fit, "try-error"))
           return(fit$Log.Likelihood) else return(NA)}
       
@@ -410,7 +410,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
         BPs[["date.BP1.calf"]] <- Time[which.min(abs(dhours-(BPs[["BP1.calf"]]*24)))] # BP1 in real date and time
         
-        BPs[["recovery.calf"]] <- round(nllCalf(df = df, BP = BPs[["BP1.calf"]], kcons = kcons)$par["recovery"]/24)
+        BPs[["recovery.calf"]] <- round(nllCalf(df = df, BP = BPs[["BP1.calf"]], kcons_min = kcons_min, kcons_max = kcons_max)$par["recovery"]/24)
       }
     }
     
@@ -425,7 +425,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   }
   
   # mnll3M minimize the negative log-likelihood of all the three models
-  mnll3M <- function(df, int, kcons){
+  mnll3M <- function(df, int, kcons_min, kcons_max){
     
     speed <- na.omit(df$speed)
     speed[speed == 0] <- 1
@@ -475,7 +475,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       BP1s  <- (int:(BPmax-int)) # All possible BP
       ll1s <- rep(NA,length(BP1s))
       trytogetbp <- function (bp) {
-        fit <- try(nllCalf(df = df, BP = bp, kcons = kcons),silent=TRUE)
+        fit <- try(nllCalf(df = df, BP = bp, kcons_min = kcons_min, kcons_max = kcons_max),silent=TRUE)
         if (!inherits(fit, "try-error"))
           return(fit$Log.Likelihood) else return(NA)}
       
@@ -494,7 +494,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
         BPs[["date.BP1.calf"]] <- Time[which.min(abs(dhours-(BPs[["BP1.calf"]]*24)))] # BP1 in real date and time
         
-        BPs[["recovery.calf"]] <- round(nllCalf(df = df, BP = BPs[["BP1.calf"]], kcons = kcons)$par["recovery"]/24)
+        BPs[["recovery.calf"]] <- round(nllCalf(df = df, BP = BPs[["BP1.calf"]], kcons_min = kcons_min, kcons_max = kcons_max)$par["recovery"]/24)
       }
     }
     
@@ -513,7 +513,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     } else {
       BP2s <- expand.grid(list(BP1=int:(BPmax-int),BP2=int:(BPmax-int)))
       BP2s <- BP2s[(BP2s$BP2-BP2s$BP1)>=int,]
-      BP2s <- BP2s[(BP2s$BP2-BP2s$BP1) < kcons[2],]
+      BP2s <- BP2s[(BP2s$BP2-BP2s$BP1) < kcons_max,]
       
       if(dim(BP2s)[1] == 0)
       {
@@ -525,7 +525,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         BPs[["date.BP2.calfdeath"]] <- NA  # BP2 in real date and time
       } else{
         trytogetbp2 <- function (bp1,bp2) {
-          fit <- try(nllCalfDeath(df = df, BP1 = bp1, BP2 = bp2, kcons = kcons),silent=T)
+          fit <- try(nllCalfDeath(df = df, BP1 = bp1, BP2 = bp2, kcons_min = kcons_min, kcons_max = kcons_max),silent=T)
           if (!inherits(fit, "try-error"))
             return(list(lls = fit$Log.Likelihood, recovery = fit$par[["recovery"]])) else return(list(lls = NA, recovery = NA))}
         
@@ -577,7 +577,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   # from the Western Arctic Herd in a previous study (Cameron et al. 2018).
   # However, we adapted this method to be able to infer parturition based on the 
   # female movement rate through time.
-  estimateCalving <- function (df, int, kcons, models = c("full","calfonly")){
+  estimateCalving <- function (df, int, kcons_min, kcons_max, models = c("full","calfonly")){
     
     df2 <- df %>% as.data.frame %>% mutate(ID_Year = as.factor(paste(ID, year(Time), sep = "_")))
     
@@ -602,7 +602,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       
       # run the mnll3M or mnll2M function for the individual
       if(models == "full"){
-        results <- mnll3M(temp, int, kcons)
+        results <- mnll3M(temp, int, kcons_min, kcons_max)
         # exctract the parameters, AICs...
         results.data.temp=data.frame(ID_Year = as.factor(as.character(ID_Year)), ID=ID, Year = Year,
                                      Best.Model=as.factor(as.character(results$results[1,"Best.Model"])),
@@ -643,7 +643,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
         
         {
-          fit.calf <- try(nllCalf(temp, BP = results$BPs[["BP1.calf"]], k = kcons), silent = TRUE)
+          fit.calf <- try(nllCalf(temp, BP = results$BPs[["BP1.calf"]], kcons_min = kcons_min, kcons_max = kcons_max), silent = TRUE)
           if(!inherits(fit.calf, 'try-error')){
             parcalf <- data.frame(alpha.mean1=fit.calf$par[["alpha.mean"]], beta.mean1=fit.calf$par[["beta.mean"]],
                                   alpha.calf1=fit.calf$par[["alpha.calf"]], beta.calf1=exp(fit.calf$par[["log.beta.calf"]]),
@@ -667,7 +667,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
         
         {
-          fit.calfdeath <- try(nllCalfDeath(temp, BP1 = results$BPs[["BP1.calfdeath"]], BP2 = results$BPs[["BP2.calfdeath"]], k = kcons), silent = TRUE)
+          fit.calfdeath <- try(nllCalfDeath(temp, BP1 = results$BPs[["BP1.calfdeath"]], BP2 = results$BPs[["BP2.calfdeath"]], kcons_min = kcons_min, kcons_max = kcons_max), silent = TRUE)
           if(!inherits(fit.calfdeath, 'try-error')){
             parcalfdeath <- data.frame(alpha.mean2=fit.calfdeath$par[["alpha.mean"]], beta.mean2=fit.calfdeath$par[["beta.mean"]],
                                        alpha.calf2=fit.calfdeath$par[["alpha.calf"]], beta.calf2=exp(fit.calfdeath$par[["log.beta.calf"]]),
@@ -696,7 +696,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
       } else if(models == "calfonly"){
         # run the mnll2M function for the individual
-        results <- mnll2M(temp, int, kcons)
+        results <- mnll2M(temp, int, kcons_min, kcons_max)
         # exctract the parameters, AICs...
         results.data.temp=data.frame(ID_Year = as.factor(as.character(ID_Year)), ID=ID, Year = Year,
                                      Best.Model=as.factor(as.character(results$results[1,"Best.Model"])),
@@ -729,7 +729,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         
         
         {
-          fit.calf <- try(nllCalf(temp, BP = results$BPs[["BP1.calf"]], k = kcons), silent = TRUE)
+          fit.calf <- try(nllCalf(temp, BP = results$BPs[["BP1.calf"]], kcons_min = kcons_min, kcons_max = kcons_max), silent = TRUE)
           if(!inherits(fit.calf, "try-error")){
             parcalf <- data.frame(alpha.mean1=fit.calf$par[["alpha.mean"]], beta.mean1=fit.calf$par[["beta.mean"]],
                                   alpha.calf1=fit.calf$par[["alpha.calf"]], beta.calf1=exp(fit.calf$par[["log.beta.calf"]]),
@@ -764,10 +764,10 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         p1 <- ggplot(temp,aes(Time,speed,group=1)) +
           geom_line() +
           theme(panel.background = element_blank()) +  #Sets background to white
-          geom_hline(aes(yintercept=fit.values.nocalf, group=1, colour=2), show.legend=FALSE, size=1) +
+          geom_hline(aes(yintercept=fit.values.nocalf, group=1, colour=2), show.legend=FALSE, size = 1) +
           labs(x = "Date", y = "Speed (m.h-1)", title = paste("No calf model for",ID_Year, sep = " ")) +
-          theme(axis.line.x = element_line(size = .5,colour = "black",linetype = "solid")) + #add axis lines
-          theme(axis.line.y = element_line(size = .5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.x = element_line(linewidth = .5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.y = element_line(linewidth = .5,colour = "black",linetype = "solid")) + #add axis lines
           theme(plot.title = element_text(size = 12,face = "bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500))
         print(p1)
@@ -785,8 +785,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
           geom_vline(xintercept=as.numeric(calve),linetype=4,colour="black") + #break point at calving event
           geom_text(aes(x=(calve+2*24*3600),label=calve,y=1500),angle=90,size=4,fontface="italic") + #Labels the calving line with calving date
           labs(x="Date",y="Speed (m.h-1)",title=paste("Calf model for",ID_Year,sep = " " )) +
-          theme(axis.line.x=element_line(size=.5,colour = "black",linetype = "solid")) + #add axis lines
-          theme(axis.line.y=element_line(size=.5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.x=element_line(linewidth=.5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.y=element_line(linewidth=.5,colour = "black",linetype = "solid")) + #add axis lines
           theme(plot.title=element_text(size=12,face="bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500)) +
           geom_line(aes(as.POSIXct(Time), fit.values.calf, colour=1, group=1), show.legend=FALSE, size=1) #plots predicted values
@@ -808,8 +808,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
           geom_vline(xintercept=as.numeric(calf.loss),linetype=4,colour="black") + #break point at calf loss event
           geom_text(aes(x=(calf.loss-2*24*3600),label=calf.loss,y=1500),angle=90,size=4,fontface="italic") + #Labels calf loss
           labs(x="Date",y="Speed (m.h-1)",title=paste("Calf death model for",ID_Year,sep = " " )) +
-          theme(axis.line.x=element_line(size=.5,colour = "black",linetype = "solid")) + #add axis lines
-          theme(axis.line.y=element_line(size=.5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.x=element_line(linewidth=.5,colour = "black",linetype = "solid")) + #add axis lines
+          theme(axis.line.y=element_line(linewidth=.5,colour = "black",linetype = "solid")) + #add axis lines
           theme(plot.title=element_text(size=12,face="bold",margin = margin(10,0,10,0))) +
           ylim(c(0,2500)) +
           geom_line(aes(as.POSIXct(Time), fit.values.calfdeath, colour=1, group=1), show.legend=FALSE, size=1) #plots predicted values
@@ -828,7 +828,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     getSpeed(id.col = "ID", x.col = "x", y.col = "y", time.col = "Time")
   
   pdf(file="data/output/Calving_plots.pdf")
-  calving_results <- estimateCalving(prepped_data, int = int, kcons = kcons, models = models)
+  calving_results <- estimateCalving(prepped_data, int = int, kcons_min = kcons_min, kcons_max = kcons_max, models = models)
   dev.off()
   
   statistics <- calving_results$statistics

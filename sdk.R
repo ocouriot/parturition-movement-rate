@@ -18,7 +18,8 @@ args[["nfixes"]] = 1
 args[["dayloss"]] = 10
 args[["restrictive"]] = FALSE
 args[["int"]] = 3
-args[["kcons"]] = c(5,21)
+args[["kcons_min"]] = 5
+args[["kcons_max"]] = 21
 args[["models"]] = "calfonly"
 
 # Lets simulate running your app on MoveApps

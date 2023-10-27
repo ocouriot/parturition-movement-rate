@@ -6,6 +6,7 @@
     "dayloss": 10,
     "restrictive": FALSE,
     "int": 3,
-    "kcons": c(5,21),
+    "kcons_min": 5,
+    "kcons_max": 21,
     "models": "calfonly"
 }

@@ -51,7 +51,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       mutate(Year = year(Time), 
              start = ymd(paste(Year, start), tz = tz(Time)),
              end = ymd(paste(Year, end), tz = tz(Time))) %>%
-      subset(Time >= start & Time < end) %>% 
+      subset(Time >= start & Time <= end) %>% 
       mutate(start = as.Date(start), end = as.Date(end))
     
     # Remove individuals for which monitoring stopped before the end or 
@@ -64,37 +64,45 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
         mutate(ID_Year = as.factor(paste(ID, Year, sep ="_")))
     }
     
-    
-    # calculate the dt between successive relocations for each individual and exclude 
-    # those with less fixes per day than nfixes (e.g., 1 for parturition) and missing data for more than
-    # dayloss (e.g., 3 for parturition) consecutive days
-    tempo2 <- tempo %>% droplevels %>%
-      ddply(c("ID", "Year"), 
-            function(x) x %>% 
-              arrange(Time) %>% 
-              mutate(n = length(Time),
-                     dt = ifelse(n < 3, NA,
-                                 c(NA, as.integer(difftime(Time[2:length(Time)],Time[1:(length(Time)-1)],"hours")))),
-                     n = NULL)) %>%
-      ddply(c("ID", "Year"), 
-            function(x) x %>% 
-              mutate(meandt = mean(.$dt, na.rm = TRUE), maxdt = max(.$dt, na.rm = TRUE))) %>% 
-      subset(meandt < nfixes*24 & maxdt < dayloss*24) %>% droplevels %>% 
-      mutate(start = NULL, end = NULL, start.monitoring = NULL, end.monitoring = NULL, 
-             ID_Year = NULL, dt = NULL, meandt = NULL, maxdt = NULL) %>% suppressWarnings
-    
-    # how many individuals have been removed?
-    cat(paste0("Period clipped to ", start," - ", end, "\n"))
-    cat(paste0("Number of excluded individuals-years: ",
-               length(unique(paste0(df$ID,df$Year)))-
-                 length(unique(paste0(tempo2$ID,tempo2$Year))),
-               "\n"))
-    
-    if(class(df)[1] == "sf"){
-      tempo2 <- st_as_sf(tempo2, crs = st_crs(df))
+    if(dim(tempo)[1] > 0) {
+      # calculate the dt between successive relocations for each individual and exclude 
+      # those with less fixes per day than nfixes (e.g., 1 for parturition) and missing data for more than
+      # dayloss (e.g., 3 for parturition) consecutive days
+      tempo2 <- tempo %>% droplevels %>%
+        ddply(c("ID", "Year"), 
+              function(x) x %>% 
+                arrange(Time) %>% 
+                mutate(n = length(Time),
+                       dt = ifelse(n < 3, NA,
+                                   c(NA, as.integer(difftime(Time[2:length(Time)],Time[1:(length(Time)-1)],"hours")))),
+                       n = NULL)) %>%
+        ddply(c("ID", "Year"), 
+              function(x) x %>% 
+                mutate(meandt = mean(.$dt, na.rm = TRUE), maxdt = max(.$dt, na.rm = TRUE))) %>% 
+        subset(meandt < nfixes*24 & maxdt < dayloss*24) %>% droplevels 
+      
+      if(dim(tempo2)[1] > 0) {
+        tempo2 <- tempo2 %>% 
+          mutate(start = NULL, end = NULL, start.monitoring = NULL, end.monitoring = NULL, 
+                 ID_Year = NULL, dt = NULL, meandt = NULL, maxdt = NULL) %>% suppressWarnings
+        
+        # how many individuals have been removed?
+        cat(paste0("Period clipped to ", start," - ", end, "\n"))
+        cat(paste0("Number of excluded individuals-years: ",
+                   length(unique(paste0(df$ID,df$Year)))-
+                     length(unique(paste0(tempo2$ID,tempo2$Year))),
+                   "\n"))
+        
+        if(class(df)[1] == "sf"){
+          tempo2 <- st_as_sf(tempo2, crs = st_crs(df))
+        }
+        return(tempo2)
+      } else {
+        stop("There is no individual in the dataset, try changing the fixrate, the allowed number of days with missing data or uncheck the 'restriction' argument")
+      }
+    } else {
+      stop("There is no individual in the dataset, try changing the fixrate, the allowed number of days with missing data or uncheck the 'restriction' argument")
     }
-    return(tempo2)
-  }
   
   # Second step: get movement rate for all individuals by calculating speed 
   # from raw movement data containing x and y 

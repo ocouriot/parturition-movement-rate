@@ -39,6 +39,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       df$ID <- data$tag.local.identifier
     } else if (any(names(df)=="tag.id")){
       df$ID <- df$tag.id
+    }else if (any(names(df)=="individual_local_identifier")){
+      df$ID <- df$individual_local_identifier
     } else {
       logger.info("There is no standard variable for animal ID in your data set, therefore track is used.")
       df$ID <- df$track
@@ -827,18 +829,18 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
                                     dayloss = dayloss, restrictive = restrictive) %>% 
     getSpeed(id.col = "ID", x.col = "x", y.col = "y", time.col = "Time")
   
-  pdf(file="data/output/Calving_plots.pdf")
+  pdf(file=appArtifactPath("Calving_plots.pdf"))
   calving_results <- estimateCalving(prepped_data, int = int, kcons_min = kcons_min, kcons_max = kcons_max, models = models)
   dev.off()
   
   statistics <- calving_results$statistics
-  write.csv(statistics, file = "data/output/calving_statistics.csv")
+  write.csv(statistics, file = appArtifactPath("calving_statistics.csv"))
   
   parameters <- calving_results$par
-  write.csv(parameters, file = "data/output/calving_models_parameters.csv")
+  write.csv(parameters, file = appArtifactPath("calving_models_parameters.csv"))
   
   calving_results <- calving_results$results
-  write.csv(calving_results, file = "data/output/calving_results.csv")
+  write.csv(calving_results, file = appArtifactPath("calving_results.csv"))
   
   return(data)
 }

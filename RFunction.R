@@ -51,8 +51,8 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       mutate(Year = year(Time), 
              start = ymd(paste(Year, start), tz = tz(Time)),
              end = ymd(paste(Year, end), tz = tz(Time))) %>%
-      subset(Time >= start & Time <= end) %>% 
-      mutate(start = as.Date(start), end = as.Date(end))
+      subset(Time >= start & Time <= (end + 3600 * 24)) %>% 
+      mutate(start = as.Date(start), end = as.Date(end)) %>% droplevels
     
     # Remove individuals for which monitoring stopped before the end or 
     # began after the start
@@ -75,14 +75,12 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
                 mutate(n = length(Time),
                        dt = ifelse(n < 3, NA,
                                    c(NA, as.integer(difftime(Time[2:length(Time)],Time[1:(length(Time)-1)],"hours")))),
-                       n = NULL)) %>%
-        ddply(c("ID", "Year"), 
+                       n = NULL))
+      if(dim(tempo2)[1] >= 3) {
+        tempo2 <- tempo2 %>% ddply(c("ID", "Year"), 
               function(x) x %>% 
                 mutate(meandt = mean(.$dt, na.rm = TRUE), maxdt = max(.$dt, na.rm = TRUE))) %>% 
-        subset(meandt < nfixes*24 & maxdt < dayloss*24) %>% droplevels 
-      
-      if(dim(tempo2)[1] > 0) {
-        tempo2 <- tempo2 %>% 
+        subset(meandt < nfixes*24 & maxdt < dayloss*24) %>% droplevels %>% 
           mutate(start = NULL, end = NULL, start.monitoring = NULL, end.monitoring = NULL, 
                  ID_Year = NULL, dt = NULL, meandt = NULL, maxdt = NULL) %>% suppressWarnings
         

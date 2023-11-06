@@ -14,7 +14,7 @@ library('sf')
 # logger.fatal(), logger.error(), logger.warn(), logger.info(), logger.debug(), logger.trace()
 
 # Showcase injecting app setting (parameter `year`)
-rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss = Inf, restrictive = FALSE,
+rFunction = function(data, start = "05-19", end = "07-07", nfixes = 1, dayloss = 10, restrictive = FALSE,
                      int = 3, kcons_min = 5, kcons_max = 21, models = c("full","calfonly")) {
   
   
@@ -51,7 +51,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
       mutate(Year = year(Time), 
              start = ymd(paste(Year, start), tz = tz(Time)),
              end = ymd(paste(Year, end), tz = tz(Time))) %>%
-      subset(Time >= start & Time <= (end + 3600 * 24)) %>% 
+      subset(Time >= start & Time < (end + 3600 * 24)) %>% 
       mutate(start = as.Date(start), end = as.Date(end)) %>% droplevels
     
     # Remove individuals for which monitoring stopped before the end or 
@@ -76,11 +76,11 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
                        dt = ifelse(n < 3, NA,
                                    c(NA, as.integer(difftime(Time[2:length(Time)],Time[1:(length(Time)-1)],"hours")))),
                        n = NULL))
-      if(dim(tempo2)[1] >= 3) {
+
         tempo2 <- tempo2 %>% ddply(c("ID", "Year"), 
               function(x) x %>% 
                 mutate(meandt = mean(.$dt, na.rm = TRUE), maxdt = max(.$dt, na.rm = TRUE))) %>% 
-        subset(meandt < nfixes*24 & maxdt < dayloss*24) %>% droplevels %>% 
+        subset(meandt < 24/nfixes & maxdt < dayloss*24) %>% droplevels %>% 
           mutate(start = NULL, end = NULL, start.monitoring = NULL, end.monitoring = NULL, 
                  ID_Year = NULL, dt = NULL, meandt = NULL, maxdt = NULL) %>% suppressWarnings
         
@@ -91,14 +91,16 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
                      length(unique(paste0(tempo2$ID,tempo2$Year))),
                    "\n"))
         
+        removed_inds <- setdiff(unique(paste(df$ID,df$Year, sep = " in ")),
+                                unique(paste(tempo2$ID,tempo2$Year, sep = " in ")))
+        cat("Excluded individuals: \n")
+        cat(paste0(removed_inds, "\n"))
         if(class(df)[1] == "sf"){
           tempo2 <- st_as_sf(tempo2, crs = st_crs(df))
         }
         return(tempo2)
-      } else {
-        stop("There is no individual in the dataset, try changing the fixrate, the allowed number of days with missing data or uncheck the 'restriction' argument")
-      }
-    } else {
+    } 
+    if(dim(tempo2)[1] == 0){
       stop("There is no individual in the dataset, try changing the fixrate, the allowed number of days with missing data or uncheck the 'restriction' argument")
     }
   }
@@ -257,10 +259,25 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     
     fit <- fitted.calf(par = par, dhours.a = dhours.a, dhours.b = dhours.b)
     
+    ### function to plot the speed in function to hours with fitted values
+    plotFit <- function(ID, dhours, speed, Time, Time.b, alpha.mean, beta.mean, speed.hat, recovery){
+      plot(Time, speed, type = "l", main = paste("Individual", unique(ID), sep = " ", bty = "l"))
+      lines(Time, speed.hat, col = 2, lwd = 2)
+      text(Time[which(Time==Time.b[1])-1]+2*3600*24,alpha.mean/beta.mean+600,
+           labels = paste("Calving = ", substr(Time[which(Time==Time.b[1])-1],1,10),sep=""),srt=90,font=3, col="red")
+      text(mean(Time),max(speed),
+           labels = paste(paste("recovery = ", round(recovery/24,0),sep=""), "days", sep = " "),font=3)
+    }
+    if (PlotMe)
+      plotFit(ID = df$ID, speed = speed, dhours = dhours, alpha.mean = par["alpha.mean"], recovery = par["recovery"],
+              Time = df$Time, Time.b = Time.b, beta.mean = par["beta.mean"], speed.hat = fit)
+    
+    
     return(list(Log.Likelihood = -total.nll, par=par, fit = fit))
   }
   
-  #  nllCalfdeath calculates the negative log-likelihood of a female with a calf that died.
+  #' @describeIn nll.calf Likelihood of Female having a calf that died
+  
   nllCalfDeath <- function(df, BP1, BP2, kcons_min, kcons_max, PlotMe = FALSE){
     
     # Divides the time series into three sections:
@@ -346,8 +363,24 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     
     fit <- fitted.calfdeath(par = par, dhours.a = dhours.a, dhours.b = dhours.b, dhours.c = dhours.c)
     
+    ## function to plot the speed in function to hours with fitted values
+    plotFit <- function(ID, dhours, speed, Time, Time.b, Time.c, alpha.mean, beta.mean, speed.hat, recovery){
+      plot(Time, speed, type = "o", main = paste("Individual", unique(ID), sep = " "))
+      lines(Time, speed.hat, col = 2, lwd = 2)
+      text(Time[which(Time==Time.b[1])-1]+2*3600*24,alpha.mean/beta.mean+600,
+           labels = paste("Calving = ", substr(Time[which(Time==Time.b[1])-1],1,10),sep=""),srt=90,font=3, col="red")
+      text(Time[which(Time==Time.b[length(Time.b)])]-2*3600*24, alpha.mean/beta.mean+600,
+           labels = paste("Calf death = ", substr(Time[which(Time==Time.c[length(Time.c)])],1,10),sep=""),
+           srt=90,font=3, col="red")
+      # text(mean(Time),max(speed),labels = paste(paste("recovery = ", round(recovery/24,0),sep=""), "days", sep = " "),font=3)
+    }
+    if (PlotMe)
+      plotFit(ID = df$ID, speed = speed, Time = df$Time, Time.b = Time.b, Time.c = Time.c,
+              alpha.mean = par["alpha.mean"], beta.mean = par["beta.mean"], speed.hat = fit)
+    
     return(list(Log.Likelihood = -total.nll, par=par, fit = fit))
   }
+
   
   # mnll2M minimize the negative log-likelihood of the no calf and calf models only
   mnll2M <- function(df, int, kcons_min, kcons_max){
@@ -433,7 +466,7 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
     
   }
   
-  # mnll3M minimize the negative log-likelihood of all the three models
+  # mnll3M minimize the negative log-likelihood of the no calf, the calf and calf death models
   mnll3M <- function(df, int, kcons_min, kcons_max){
     
     speed <- na.omit(df$speed)
@@ -833,11 +866,12 @@ rFunction = function(data, start = "05-19", end = "07-07", nfixes = Inf, dayloss
   
   # Run the functions to estimate calving
   prepped_data <- data %>% prepData(start = start, end = end, nfixes = nfixes, 
-                                    dayloss = dayloss, restrictive = restrictive) %>% 
+                                    dayloss = 3, restrictive = restrictive) %>% 
     getSpeed(id.col = "ID", x.col = "x", y.col = "y", time.col = "Time")
   
   pdf(file=appArtifactPath("Calving_plots.pdf"))
-  calving_results <- estimateCalving(prepped_data, int = int, kcons_min = kcons_min, kcons_max = kcons_max, models = models)
+  calving_results <- estimateCalving(prepped_data, int = int, kcons_min = kcons_min, 
+                                     kcons_max = kcons_max, models = models)
   dev.off()
   
   statistics <- calving_results$statistics
